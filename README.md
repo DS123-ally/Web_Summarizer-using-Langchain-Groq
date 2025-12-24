@@ -90,7 +90,7 @@ If you find this project helpful:
 
 🍴 Fork it
 
-🧠 Extend it with new features
+🧠 Extend it with new features.
 
 
 
