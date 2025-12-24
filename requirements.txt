@@ -1,0 +1,22 @@
+# Core UI
+streamlit>=1.31.0
+
+# URL validation
+validators>=0.22.0
+
+# LangChain core + ecosystem
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+
+# Groq LLM integration
+langchain-groq>=0.1.4
+
+# Website content loading
+unstructured>=0.14.0
+beautifulsoup4>=4.12.0
+lxml>=5.1.0
+requests>=2.31.0
+
+# Utilities
+python-dotenv>=1.0.0
