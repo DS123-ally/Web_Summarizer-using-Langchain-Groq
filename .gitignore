@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.python-version
+
+# Virtual environments
+venv/
+.env/
+.env
+env/
+venv.*
+venv\
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Vite
+dist/
+
+# Log files
+*.log
+
+# IDE files
+*.iml
+.idea/
+
+# OS files
+Thumbs.db
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python dependency vaults
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Database
+*.sqlite3
+
+# Local and temporary
+*.temp
+*.tmp
+
+# Other
+*.bak
+*~
