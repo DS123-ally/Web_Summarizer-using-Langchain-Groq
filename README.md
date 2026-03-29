@@ -1,186 +1,224 @@
-# 🌐 Website Summarizer — LangChain + Groq
+# 🚀 Web Summarizer using LangChain + Groq
 
-A lightweight **Streamlit** web application that fetches content from any public website URL and generates a concise, readable summary using **LangChain** and **Groq's LLaMA-3.1-8B-Instant** model.
+## 📌 Overview
 
-Built for learning, experimentation, and real-world usage with modern LLM tooling.
+**Web Summarizer** takes any public URL, extracts its content, breaks it into semantic chunks, stores them in a **FAISS vector database**, retrieves the most relevant pieces, and generates a concise, context-aware summary using **Groq's ultra-fast LLMs** — all through a modern React dashboard with user authentication.
 
 ---
 
 ## ✨ Features
 
-- 🔗 **Summarize any public website** — just paste a URL and go
-- ⚡ **Powered by Groq** — ultra-fast inference with LLaMA-3.1-8B-Instant
-- 🧠 **LangChain summarization chains** — supports `stuff`, `map_reduce`, and `refine` strategies
-- 🎛️ **Adjustable summary length** — slider from 50 to 1000 words
-- 🧪 **Developer Debug Mode** — view prompt template, extracted docs, model info, and runtime details
-- 👁️ **Extracted text preview** — optionally inspect raw content before summarization
-- 📥 **Download summary** — export results as a `.txt` file
-- 🧩 **Multi-version LangChain compatibility** — safe import fallbacks for older and newer versions
-
----
-
-## 🖥️ App Layout
-
-```
-Sidebar                          Main Panel
-────────────────────             ──────────────────────────────────
-🔑 Groq API Key (password)       📝 Website Summarizer — LangChain + Groq
-
-Advanced Settings:               [ Website URL input field         ]
-  • Summary length (words)
-  • Show extracted text          [ Summarize button                ]
-  • Chain type
-  • Dev mode (debug)             ── Summary ──
-  • Clear session                <generated summary text here>
-
-                                 [ Download summary (.txt) ]
-```
-
----
-
-## 🗂️ Project Structure
-
-```
-Web_Summarizer-using-Langchain-Groq/
-│
-├── app.py                  # Main Streamlit application
-├── inspect_langchain.py    # LangChain version inspection utility
-├── requirements.txt        # Python dependencies
-├── LICENSE                 # MIT License
-└── README.md               # Documentation
-```
-
----
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
+| Feature | Description |
 |---|---|
-| Python 3.10+ | Core language |
-| Streamlit | Web UI framework |
-| LangChain | LLM chain orchestration |
-| langchain-groq | Groq LLM integration (ChatGroq) |
-| langchain-community | `UnstructuredURLLoader` for web scraping |
-| Groq API (LLaMA-3.1-8B-Instant) | Fast LLM inference |
-| Unstructured | Website content extraction |
-| BeautifulSoup4 + lxml | HTML parsing |
-| Validators | URL validation |
-| python-dotenv | Environment variable management |
+| 🌐 Web Extraction | Pulls content from any public URL |
+| 🧠 RAG Pipeline | Context-aware summarization via FAISS retrieval |
+| ⚡ Groq Inference | Near-instant LLM responses |
+| 🔐 Auth System | JWT-based Login & Signup |
+| 📊 Dashboard | Manage and review past summaries |
+| 🎨 Modern UI | React + Vite + Tailwind CSS frontend |
 
 ---
 
-## 🚀 Getting Started
+## 🏗️ Tech Stack
 
-### Prerequisites
+### Backend
+- **Python** + **FastAPI** — REST API server
+- **LangChain** — RAG orchestration & text splitting
+- **Groq API** — LLM inference (Llama 3 / Mixtral)
+- **FAISS** — Vector store for semantic search
+- **JWT** — Token-based authentication
 
-- Python 3.10+
-- A free [Groq API key](https://console.groq.com)
+### Frontend
+- **React** (Vite) — Component-based UI
+- **Tailwind CSS** — Utility-first styling
 
-### 1. Clone the Repository
+---
+
+## 🧠 How It Works
+
+```
+User Input (URL)
+      │
+      ▼
+ Web Content Extraction
+      │
+      ▼
+ Text Chunking (LangChain Splitter)
+      │
+      ▼
+ Embeddings Generation
+      │
+      ▼
+ FAISS Vector Store  ←──────────────┐
+      │                             │
+      ▼                             │
+ Relevant Chunk Retrieval ──────────┘
+      │
+      ▼
+ Groq LLM → Summary
+      │
+      ▼
+ React Dashboard UI
+```
+
+1. Extract web content from the given URL
+2. Split text into smaller, overlapping chunks
+3. Convert chunks into vector embeddings
+4. Store embeddings in a local **FAISS** index
+5. Retrieve the most relevant chunks for the query
+6. Pass retrieved context to **Groq LLM** for summarization
+
+---
+
+## 📂 Project Structure
+
+```
+Web_Summarizer/
+│
+├── backend/
+│   ├── main.py              # FastAPI app & routes
+│   ├── rag_pipeline.py      # LangChain RAG logic
+│   ├── auth.py              # JWT authentication
+│   ├── db.py                # Database models/config
+│   ├── requirements.txt     # Python dependencies
+│   └── faiss_indexes/       # Stored FAISS vector indexes
+│
+├── frontend/
+│   ├── src/                 # React components & pages
+│   ├── public/              # Static assets
+│   ├── package.json
+│   └── vite.config.js
+│
+└── README.md
+```
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the Repository
 
 ```bash
 git clone https://github.com/DS123-ally/Web_Summarizer-using-Langchain-Groq.git
 cd Web_Summarizer-using-Langchain-Groq
 ```
 
-### 2. Create & Activate a Virtual Environment
+### 2️⃣ Backend Setup
 
 ```bash
-# Windows
+cd backend
 python -m venv venv
-venv\Scripts\activate
 
-# macOS / Linux
-python -m venv venv
-source venv/bin/activate
-```
+# Activate virtual environment
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # macOS / Linux
 
-### 3. Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Get Your Groq API Key
+### 3️⃣ Environment Variables
 
-1. Sign up at 👉 [https://console.groq.com](https://console.groq.com)
-2. Generate a free API key
-3. Enter it in the app's sidebar when running (no `.env` file needed)
+Create a `.env` file inside the `backend/` folder:
 
-### 5. Run the App
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+> 🔑 Get your free Groq API key at [https://console.groq.com](https://console.groq.com)
+
+### 4️⃣ Run the Backend
 
 ```bash
-python -m streamlit run app.py
+uvicorn main:app --reload
 ```
 
-Open your browser at 👉 [http://localhost:8501](http://localhost:8501)
+API will be available at `http://localhost:8000`  
+Interactive docs at `http://localhost:8000/docs`
 
----
+### 5️⃣ Frontend Setup
 
-## ⚙️ How It Works
-
-1. **URL Input** — User pastes a website URL into the form
-2. **Content Extraction** — `UnstructuredURLLoader` fetches and parses the webpage text
-3. **Prompt Construction** — A `PromptTemplate` is built with the desired word count
-4. **LangChain Chain** — A summarization chain (`stuff`, `map_reduce`, or `refine`) is loaded with `ChatGroq` as the LLM
-5. **Summary Output** — The summary is displayed in the UI and offered as a `.txt` download
-
----
-
-## 📦 Dependencies
-
-```txt
-streamlit>=1.31.0
-validators>=0.22.0
-langchain>=0.2.0
-langchain-core>=0.2.0
-langchain-community>=0.2.0
-langchain-groq>=0.1.4
-unstructured>=0.14.0
-beautifulsoup4>=4.12.0
-lxml>=5.1.0
-requests>=2.31.0
-python-dotenv>=1.0.0
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
+Frontend will be available at `http://localhost:5173`
+
 ---
 
-## 🧪 Chain Types Explained
+## 🔐 Authentication
 
-| Chain Type | Description | Best For |
+- **Signup** — Create a new user account
+- **Login** — Authenticate and receive a JWT token
+- **Protected Routes** — Dashboard and summarization features require a valid token
+
+---
+
+## 📸 Screenshots
+
+> _Add screenshots here_
+
+| Home Page | Dashboard | Summary Output |
 |---|---|---|
-| `stuff` | Passes all content in a single prompt | Short pages |
-| `map_reduce` | Summarizes chunks individually then combines | Long articles |
-| `refine` | Iteratively refines the summary | Detailed, nuanced content |
+| _(screenshot)_ | _(screenshot)_ | _(screenshot)_ |
 
 ---
 
-## ⚠️ Notes
+## 🚀 Future Enhancements
 
-- Only publicly accessible URLs are supported (no login-protected pages)
-- Please respect `robots.txt` and website copyright when scraping
-- Some JavaScript-heavy sites may not extract content correctly
-
----
-
-## 👨‍💻 Author
-
-**Dinesh**  
-Computer Engineering Student  
-Focused on AI, LLMs, LangChain, and Full-Stack Development
+- [ ] 📄 PDF summarization
+- [ ] 📊 Analytics dashboard
+- [ ] 🌍 Multi-language support
+- [ ] ☁️ Deployment (AWS / GCP / Vercel)
+- [ ] 💬 Chat with documents
 
 ---
 
-## 📄 License
+## ⚠️ Important Notes
+
+- **Never commit your `.env` file** — add it to `.gitignore`
+- Ignore FAISS artifacts by adding to `.gitignore`:
+
+```gitignore
+.env
+backend/faiss_indexes/
+*.pkl
+*.faiss
+```
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! To contribute:
+
+```bash
+# 1. Fork the repository
+# 2. Create your feature branch
+git checkout -b feature/your-feature-name
+
+# 3. Commit your changes
+git commit -m "Add: your feature description"
+
+# 4. Push and open a Pull Request
+git push origin feature/your-feature-name
+```
+
+---
+
+## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## ⭐ Support
+## 🙌 Acknowledgements
 
-If you find this project helpful:
+- [LangChain](https://www.langchain.com/) — LLM orchestration framework
+- [Groq API](https://groq.com/) — Lightning-fast LLM inference
+- [FAISS](https://faiss.ai/) — Efficient vector similarity search
 
-- ⭐ Star the repository
-- 🍴 Fork it and extend it
-- 🐛 Open an issue for bugs or suggestions
+---
+
+<p align="center">Built with ❤️ Dinesh Seervi.</p>
