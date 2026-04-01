@@ -4,7 +4,7 @@
 
 **Web Summarizer** takes any public URL, extracts its content, breaks it into semantic chunks, stores them in a **FAISS vector database**, retrieves the most relevant pieces, and generates a concise, context-aware summary using **Groq's ultra-fast LLMs** — all through a modern React dashboard with user authentication.
 
----
+--- 
  
 ## ✨ Features
 
