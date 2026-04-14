@@ -6,6 +6,10 @@ import uuid
 
 router = APIRouter()
 
+DEFAULT_EMAIL = "admin@example.com"
+DEFAULT_USERNAME = "admin"
+DEFAULT_PASSWORD = "admin123"
+
 class UserSignup(BaseModel):
     email: str
     username: str
@@ -14,6 +18,22 @@ class UserSignup(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+def ensure_default_user() -> None:
+    existing = users_col.find_one({"email": DEFAULT_EMAIL})
+    if existing:
+        return
+
+    users_col.insert_one(
+        {
+            "_id": "default-user",
+            "email": DEFAULT_EMAIL,
+            "username": DEFAULT_USERNAME,
+            "password": hash_password(DEFAULT_PASSWORD),
+            "is_default": True,
+        }
+    )
 
 # ✅ Signup
 @router.post("/signup")
@@ -48,6 +68,7 @@ def signup(user: UserSignup):
 # ✅ Login
 @router.post("/login")
 def login(user: UserLogin):
+    ensure_default_user()
     db_user = users_col.find_one({"email": user.email})
 
     if not db_user or not verify_password(user.password, db_user["password"]):

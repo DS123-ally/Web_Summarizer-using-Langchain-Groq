@@ -12,7 +12,9 @@ from langchain_groq import ChatGroq
 
 from db import chat_history_col, summaries_col
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+BASE_DIR = os.path.dirname(__file__)
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
 INDEX_ROOT = os.path.join(os.path.dirname(__file__), "faiss_indexes")
 os.makedirs(INDEX_ROOT, exist_ok=True)
@@ -199,7 +201,14 @@ def chat_with_website(
     docs = []
     seen = set()
     for q in queries[:4]:
-        for d in retriever.get_relevant_documents(q):
+        # Compatibility across LangChain versions:
+        # newer retrievers use invoke(), older ones expose get_relevant_documents().
+        retrieved_docs = (
+            retriever.invoke(q)
+            if hasattr(retriever, "invoke")
+            else retriever.get_relevant_documents(q)
+        )
+        for d in retrieved_docs:
             text = (d.page_content or "").strip()
             if text and text not in seen:
                 seen.add(text)

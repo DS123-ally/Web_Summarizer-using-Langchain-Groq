@@ -2,7 +2,7 @@ import os
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
-from auth_routes import router as auth_router
+from auth_routes import router as auth_router, ensure_default_user
 from auth_dependency import get_current_user
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,9 @@ from rag_pipeline import chat_with_website, get_recent_chats, summarize_website
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+BASE_DIR = os.path.dirname(__file__)
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
 app = FastAPI()
 
@@ -28,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+ensure_default_user()
 
 class URLRequest(BaseModel):
     url: str
