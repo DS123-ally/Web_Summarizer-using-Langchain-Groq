@@ -21,8 +21,14 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="text-lg font-semibold text-white">
-          Website Summarizer
+        <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 ring-1 ring-blue-300/30">
+            <svg className="h-4 w-4 text-blue-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M16.5 14.5l3 3 4-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span>Website Summarizer</span>
         </Link>
         <nav className="hidden items-center gap-5 md:flex">
           <NavLink to="/" className={linkClass}>
