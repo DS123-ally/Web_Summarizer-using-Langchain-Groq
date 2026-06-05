@@ -2,7 +2,7 @@
 
 ## 📌 Overview
 
-**Web Summarizer** takes any public URL, extracts its content, breaks it into semantic chunks, stores them in a **FAISS vector database**, retrieves the most relevant pieces, and generates a concise, context-aware summary using **Groq's ultra-fast LLMs** — all through a modern React dashboard with user authentication.
+**Web Summarizer** takes any public URL or PDF Document, extracts its content, breaks it into semantic chunks, stores them in a **FAISS vector database**, retrieves the most relevant pieces, and generates a concise, context-aware summary using **Groq's ultra-fast LLMs**. It also features a fully interactive chat interface to let you "talk" to the document. Everything is wrapped in a modern **Next.js App Router** dashboard secured by **Firebase Authentication**.
 
 --- 
  
@@ -11,11 +11,13 @@
 | Feature | Description |
 |---|---|
 | 🌐 Web Extraction | Pulls content from any public URL |
+| 📄 PDF Uploads | Upload and process local PDF documents |
 | 🧠 RAG Pipeline | Context-aware summarization via FAISS retrieval |
-| ⚡ Groq Inference | Near-instant LLM responses |
-| 🔐 Auth System | JWT-based Login & Signup |
-| 📊 Dashboard | Manage and review past summaries |
-| 🎨 Modern UI | React + Vite + Tailwind CSS frontend |
+| ⚡ Groq Inference | Near-instant LLM responses via Llama 3 |
+| 💬 Document Chat | Ask specific questions about the processed content |
+| 🔐 Firebase Auth | Email/Password & Google Sign-In support |
+| 📊 Dashboard | Manage and review past summaries & chats |
+| 🎨 Modern UI | Next.js + Tailwind CSS + Framer Motion |
 
 ---
 
@@ -24,29 +26,31 @@
 ### Backend
 - **Python** + **FastAPI** — REST API server
 - **LangChain** — RAG orchestration & text splitting
-- **Groq API** — LLM inference (Llama 3 / Mixtral)
+- **Groq API** — Fast LLM inference
 - **FAISS** — Vector store for semantic search
-- **JWT** — Token-based authentication
+- **Firebase Admin SDK** — Token verification for protected routes
 
 ### Frontend
-- **React** (Vite) — Component-based UI
-- **Tailwind CSS** — Utility-first styling
+- **Next.js (App Router)** — Modern React framework
+- **Tailwind CSS** — Utility-first styling & Glassmorphism
+- **Framer Motion** — Smooth micro-animations
+- **Firebase JS SDK** — Client-side authentication
 
 ---
 
 ## 🧠 How It Works
 
 ```
-User Input (URL)
+User Input (URL / PDF)
       │
       ▼
- Web Content Extraction
+ Content Extraction (Web Scraper / PyPDFLoader)
       │
       ▼
  Text Chunking (LangChain Splitter)
       │
       ▼
- Embeddings Generation
+ Embeddings Generation (HuggingFace)
       │
       ▼
  FAISS Vector Store  ←──────────────┐
@@ -55,18 +59,11 @@ User Input (URL)
  Relevant Chunk Retrieval ──────────┘
       │
       ▼
- Groq LLM → Summary
+ Groq LLM → Summary / Chat Answer
       │
       ▼
- React Dashboard UI
+ Next.js Dashboard UI
 ```
-
-1. Extract web content from the given URL
-2. Split text into smaller, overlapping chunks
-3. Convert chunks into vector embeddings
-4. Store embeddings in a local **FAISS** index
-5. Retrieve the most relevant chunks for the query
-6. Pass retrieved context to **Groq LLM** for summarization
 
 ---
 
@@ -76,18 +73,23 @@ User Input (URL)
 Web_Summarizer/
 │
 ├── backend/
-│   ├── main.py              # FastAPI app & routes
-│   ├── rag_pipeline.py      # LangChain RAG logic
-│   ├── auth.py              # JWT authentication
+│   ├── main.py              # FastAPI app, routes & Firebase Admin setup
+│   ├── rag_pipeline.py      # LangChain RAG logic & Document Loading
+│   ├── auth_dependency.py   # Firebase token verification
 │   ├── db.py                # Database models/config
 │   ├── requirements.txt     # Python dependencies
-│   └── faiss_indexes/       # Stored FAISS vector indexes
+│   └── faiss_indexes/       # Stored FAISS vector indexes (Ignored in Git)
 │
 ├── frontend/
-│   ├── src/                 # React components & pages
+│   ├── app/                 # Next.js App Router (Pages & Layouts)
+│   ├── src/
+│   │   ├── components/      # Reusable React components (Navbar, Modals)
+│   │   ├── context/         # Auth & Theme Context Providers
+│   │   ├── lib/             # Firebase init & API request wrappers
+│   │   └── pages/           # Page Content Components
 │   ├── public/              # Static assets
 │   ├── package.json
-│   └── vite.config.js
+│   └── next.config.mjs
 │
 └── README.md
 ```
@@ -116,13 +118,13 @@ source venv/bin/activate     # macOS / Linux
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Environment Variables
+### 3️⃣ Environment & Firebase Keys
 
-Create a `.env` file inside the `backend/` folder:
-
-```env
-GROQ_API_KEY=your_groq_api_key_here
-```
+1. Create a `.env` file inside the `backend/` folder:
+   ```env
+   GROQ_API_KEY=your_groq_api_key_here
+   ```
+2. Place your `serviceAccountKey.json` from the Firebase Console inside the `backend/` folder.
 
 > 🔑 Get your free Groq API key at [https://console.groq.com](https://console.groq.com)
 
@@ -143,49 +145,40 @@ npm install
 npm run dev
 ```
 
-Frontend will be available at `http://localhost:5173`
+Frontend will be available at `http://localhost:3000`
 
 ---
 
 ## 🔐 Authentication
 
-- **Signup** — Create a new user account
-- **Login** — Authenticate and receive a JWT token
-- **Protected Routes** — Dashboard and summarization features require a valid token
-
----
-
-## 📸 Screenshots
-
-> _Add screenshots here_
-
-| Home Page | Dashboard | Summary Output |
-|---|---|---|
-| _(screenshot)_ | _(screenshot)_ | _(screenshot)_ |
+Authentication has been fully upgraded to **Firebase**:
+- **Google Sign-In** — One-click OAuth authentication.
+- **Email/Password** — Standard secure signup and login flows.
+- **Protected API Routes** — The FastAPI backend securely validates Firebase ID Tokens using the Firebase Admin SDK.
 
 ---
 
 ## 🚀 Future Enhancements
 
-- [ ] 📄 PDF summarization
+- [x] 📄 PDF summarization
+- [x] 💬 Chat with documents
+- [x] 🔐 Firebase Authentication Integration
+- [x] 🎨 Next.js App Router Migration
 - [ ] 📊 Analytics dashboard
 - [ ] 🌍 Multi-language support
 - [ ] ☁️ Deployment (AWS / GCP / Vercel)
-- [ ] 💬 Chat with documents
 
 ---
 
 ## ⚠️ Important Notes
 
-- **Never commit your `.env` file** — add it to `.gitignore`
-- Ignore FAISS artifacts by adding to `.gitignore`:
-
-```gitignore
-.env
-backend/faiss_indexes/
-*.pkl
-*.faiss
-```
+- **Never commit your `.env` or `serviceAccountKey.json` files!**
+- FAISS indexes are automatically stored locally. Make sure your `.gitignore` includes:
+  ```gitignore
+  backend/serviceAccountKey.json
+  backend/faiss_indexes/
+  frontend/.next/
+  ```
 
 ---
 
@@ -218,6 +211,7 @@ This project is licensed under the [MIT License](LICENSE).
 - [LangChain](https://www.langchain.com/) — LLM orchestration framework
 - [Groq API](https://groq.com/) — Lightning-fast LLM inference
 - [FAISS](https://faiss.ai/) — Efficient vector similarity search
+- [Next.js](https://nextjs.org/) — The React Framework for the Web
 
 ---
 
