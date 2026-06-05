@@ -20,3 +20,6 @@ requests>=2.31.0
 # FAISS and sentence-transformers for RAG features
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.0
+python-multipart>=0.0.9
+PyMuPDF>=1.23.0
+firebase-admin>=6.2.0

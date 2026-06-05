@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import { api } from '../lib/api'
 
 export default function DashboardPage() {
+  const [inputType, setInputType] = useState('url')
+  const [file, setFile] = useState(null)
   const [url, setUrl] = useState('')
   const [strategy, setStrategy] = useState('stuff')
   const [summaryLength, setSummaryLength] = useState('medium')
@@ -38,11 +40,18 @@ export default function DashboardPage() {
     setError('')
     setLoadingSummary(true)
     try {
-      const data = await api.summarize({
-        url,
-        strategy,
-        summary_length: customLength ? Number(customLength) : summaryLength,
-      })
+      let data;
+      const lengthParam = customLength ? Number(customLength) : summaryLength;
+      if (inputType === 'pdf' && file) {
+        data = await api.uploadPdf(file, strategy, lengthParam)
+        setUrl(data.url)
+      } else {
+        data = await api.summarize({
+          url,
+          strategy,
+          summary_length: lengthParam,
+        })
+      }
       setSummary(data.summary || '')
       setSummaryMeta(data)
       toast.success(data.cached ? 'Loaded cached summary' : 'Summary generated')
@@ -84,14 +93,36 @@ export default function DashboardPage() {
       </div>
 
       <section className="glow-card space-y-3 p-4">
-        <label className="app-muted text-sm font-medium">Website URL</label>
-        <input
-          className="app-input w-full rounded-lg px-3 py-2"
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
-        />
+        <div className="flex gap-4 mb-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" checked={inputType === 'url'} onChange={() => setInputType('url')} className="accent-blue-500" />
+            <span className="app-muted text-sm font-medium">Website URL</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" checked={inputType === 'pdf'} onChange={() => setInputType('pdf')} className="accent-blue-500" />
+            <span className="app-muted text-sm font-medium">PDF Document</span>
+          </label>
+        </div>
+        {inputType === 'url' ? (
+          <input
+            className="app-input w-full rounded-lg px-3 py-2"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com"
+          />
+        ) : (
+          <input
+            className="app-input w-full rounded-lg px-3 py-2 text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-300 hover:file:bg-blue-500/30"
+            type="file"
+            accept=".pdf"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                setFile(e.target.files[0]);
+              }
+            }}
+          />
+        )}
         <div className="grid gap-3 md:grid-cols-3">
           <select
             className="app-input rounded-lg px-3 py-2"
@@ -114,7 +145,7 @@ export default function DashboardPage() {
           </select>
           <button
             onClick={handleSummarize}
-            disabled={!url.trim() || loadingSummary}
+            disabled={(inputType === 'url' ? !url.trim() : !file) || loadingSummary}
             className="neon-btn disabled:opacity-60"
           >
             {loadingSummary ? 'Summarizing...' : 'Summarize'}

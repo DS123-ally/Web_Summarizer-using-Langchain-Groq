@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import Literal
 
+import fitz # PyMuPDF
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
@@ -32,9 +33,16 @@ def _index_path(url: str) -> str:
 
 
 def _get_llm() -> ChatGroq:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "GROQ_API_KEY is not set. Create backend/.env with GROQ_API_KEY=your_groq_api_key_here "
+            "or export GROQ_API_KEY in your environment."
+        )
+
     return ChatGroq(
-        groq_api_key=os.getenv("GROQ_API_KEY"),
-        model_name=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+        api_key=api_key,
+        model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
     )
 
 
@@ -176,6 +184,75 @@ def summarize_website(
         "summary": summary,
         "cached": False,
         "url": url,
+        "strategy": strategy,
+        "summary_length": length_key,
+    }
+
+
+def _load_pdf_text(content: bytes) -> str:
+    doc = fitz.open(stream=content, filetype="pdf")
+    text = "\n\n".join(page.get_text() for page in doc)
+    if not text.strip():
+        raise ValueError("No extractable text found in the PDF.")
+    return text
+
+
+def summarize_pdf(
+    content: bytes,
+    filename: str,
+    strategy: Literal["stuff", "map_reduce", "refine"] = "stuff",
+    summary_length: str | int = "medium",
+) -> dict:
+    length_key, target_words = _normalize_summary_length(summary_length)
+    file_hash = hashlib.sha256(content).hexdigest()[:24]
+    pseudo_url = f"pdf://{filename}/{file_hash}"
+    
+    page_text = _load_pdf_text(content)
+    
+    cache_query = {"url": pseudo_url, "strategy": strategy, "summary_length": length_key}
+    cached_doc = summaries_col.find_one(cache_query)
+    if cached_doc and cached_doc.get("summary"):
+        _build_or_load_store(pseudo_url, page_text=page_text)
+        return {
+            "summary": cached_doc["summary"],
+            "cached": True,
+            "url": pseudo_url,
+            "strategy": strategy,
+            "summary_length": length_key,
+        }
+
+    _build_or_load_store(pseudo_url, page_text=page_text)
+    chunks = splitter.split_text(page_text)
+
+    llm = _get_llm()
+    if strategy == "map_reduce":
+        summary = _summarize_with_map_reduce(llm, chunks, target_words)
+    elif strategy == "refine":
+        summary = _summarize_with_refine(llm, chunks, target_words)
+    else:
+        summary = _summarize_with_stuff(llm, page_text, target_words)
+
+    summaries_col.update_one(
+        cache_query,
+        {
+            "$set": {
+                "url": pseudo_url,
+                "strategy": strategy,
+                "summary_length": length_key,
+                "summary": summary,
+                "updated_at": datetime.utcnow(),
+            },
+            "$setOnInsert": {
+                "created_at": datetime.utcnow(),
+            },
+        },
+        upsert=True,
+    )
+
+    return {
+        "summary": summary,
+        "cached": False,
+        "url": pseudo_url,
         "strategy": strategy,
         "summary_length": length_key,
     }

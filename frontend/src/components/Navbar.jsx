@@ -1,15 +1,18 @@
 import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { useTheme } from '../context/ThemeContext'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { auth } from '../lib/firebase';
 
 export default function Navbar() {
-  const navigate = useNavigate()
+  const navigate = useRouter()
   const { theme, toggleTheme } = useTheme()
-  const token = localStorage.getItem('token')
+  const { currentUser: token } = useAuth()
   const [open, setOpen] = useState(false)
 
-  function logout() {
-    localStorage.removeItem('token')
+  async function logout() {
+    await auth.signOut()
     navigate('/login')
   }
 
@@ -21,7 +24,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 ring-1 ring-blue-300/30">
             <svg className="h-4 w-4 text-blue-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -31,20 +34,20 @@ export default function Navbar() {
           <span>Website Summarizer</span>
         </Link>
         <nav className="hidden items-center gap-5 md:flex">
-          <NavLink to="/" className={linkClass}>
+          <Link href="/" className={linkClass}>
             Home
-          </NavLink>
-          <NavLink to="/features" className={linkClass}>
+          </Link>
+          <Link href="/features" className={linkClass}>
             Features
-          </NavLink>
-          <NavLink to="/about" className={linkClass}>
+          </Link>
+          <Link href="/about" className={linkClass}>
             About
-          </NavLink>
+          </Link>
           {token ? (
             <>
-              <NavLink to="/app" className={linkClass}>
+              <Link href="/dashboard" className={linkClass}>
                 Dashboard
-              </NavLink>
+              </Link>
               <button
                 onClick={logout}
                 className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/20"
@@ -53,12 +56,12 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <NavLink
-              to="/login"
+            <Link
+              href="/login"
               className="rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_20px_rgba(59,130,246,0.35)]"
             >
               Login
-            </NavLink>
+            </Link>
           )}
           <button
             onClick={toggleTheme}
@@ -86,19 +89,19 @@ export default function Navbar() {
       {open && (
         <div className="border-t border-white/10 bg-slate-950/95 px-4 py-3 md:hidden">
           <div className="flex flex-col gap-3">
-            <NavLink to="/" className={linkClass} onClick={() => setOpen(false)}>
+            <Link href="/" className={linkClass} onClick={() => setOpen(false)}>
               Home
-            </NavLink>
-            <NavLink to="/features" className={linkClass} onClick={() => setOpen(false)}>
+            </Link>
+            <Link href="/features" className={linkClass} onClick={() => setOpen(false)}>
               Features
-            </NavLink>
-            <NavLink to="/about" className={linkClass} onClick={() => setOpen(false)}>
+            </Link>
+            <Link href="/about" className={linkClass} onClick={() => setOpen(false)}>
               About
-            </NavLink>
+            </Link>
             {token && (
-              <NavLink to="/app" className={linkClass} onClick={() => setOpen(false)}>
+              <Link href="/dashboard" className={linkClass} onClick={() => setOpen(false)}>
                 Dashboard
-              </NavLink>
+              </Link>
             )}
             <button
               onClick={toggleTheme}
@@ -126,13 +129,13 @@ export default function Navbar() {
                 Logout
               </button>
             ) : (
-              <NavLink
-                to="/login"
+              <Link
+                href="/login"
                 onClick={() => setOpen(false)}
                 className="rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white"
               >
                 Login
-              </NavLink>
+              </Link>
             )}
           </div>
         </div>

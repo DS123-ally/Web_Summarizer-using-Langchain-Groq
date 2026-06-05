@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div className="lg:col-span-2">
-            <Link to="/" className="text-xl font-bold text-white">
+            <Link href="/" className="text-xl font-bold text-white">
               Website Summarizer
             </Link>
             <p className="mt-4 text-slate-300">
@@ -47,12 +47,12 @@ export default function Footer() {
             <h3 className="font-semibold text-white">Product</h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <Link to="/features" className="text-slate-400 hover:text-white transition-colors">
+                <Link href="/features" className="text-slate-400 hover:text-white transition-colors">
                   Features
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-slate-400 hover:text-white transition-colors">
+                <Link href="/about" className="text-slate-400 hover:text-white transition-colors">
                   About
                 </Link>
               </li>

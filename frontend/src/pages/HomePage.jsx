@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link';
 import AuthModal from '../components/AuthModal'
 
 export default function HomePage() {
@@ -36,7 +36,7 @@ export default function HomePage() {
                 Start Summarizing Free
               </button>
               <Link
-                to="/features"
+                href="/features"
                 className="rounded-lg border border-white/20 px-6 py-3 font-semibold text-slate-200 hover:bg-white/10 transition-colors"
               >
                 Explore Features

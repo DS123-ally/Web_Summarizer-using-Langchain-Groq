@@ -1,6 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+
 import { AnimatePresence, motion } from 'framer-motion'
-import { useLocation } from 'react-router-dom'
+import { usePathname } from 'next/navigation';
 import PublicLayout from './layouts/PublicLayout'
 import AboutPage from './pages/AboutPage'
 import DashboardPage from './pages/DashboardPage'
@@ -15,12 +15,12 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
-  const location = useLocation()
+  const pathname = usePathname()
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={location.pathname}
+        key={pathname}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}

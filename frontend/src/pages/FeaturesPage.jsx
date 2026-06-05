@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link';
 
 const features = [
   {
@@ -144,7 +144,7 @@ export default function FeaturesPage() {
               Start analyzing websites with AI-powered intelligence today
             </p>
             <Link
-              to="/"
+              href="/"
               className="neon-btn inline-block px-8 py-3"
             >
               Get Started Free

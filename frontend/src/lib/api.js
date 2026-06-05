@@ -1,7 +1,12 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+import { auth } from './firebase'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('token')
+  let token = null;
+  if (auth.currentUser) {
+    token = await auth.currentUser.getIdToken();
+  }
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -10,24 +15,11 @@ async function request(path, options = {}) {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
   const data = await res.json().catch(() => ({}))
-  if (res.status === 401) {
-    localStorage.removeItem('token')
-  }
   if (!res.ok) throw new Error(data.detail || 'Request failed')
   return data
 }
 
 export const api = {
-  signup: (email, username, password) =>
-    request('/signup', {
-      method: 'POST',
-      body: JSON.stringify({ email, username, password }),
-    }),
-  login: (email, password) =>
-    request('/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
   summarize: (payload) =>
     request('/summarize', {
       method: 'POST',
@@ -39,4 +31,24 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   chatHistory: () => request('/chat/history'),
+  uploadPdf: async (file, strategy, summaryLength) => {
+    let token = null;
+    if (auth.currentUser) {
+      token = await auth.currentUser.getIdToken();
+    }
+    const formData = new FormData()
+    formData.append('file', file)
+    let url = `/upload-pdf?strategy=${strategy}&summary_length=${summaryLength}`
+    const headers = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+    
+    const res = await fetch(`${API_BASE}${url}`, {
+      method: 'POST',
+      body: formData,
+      headers
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.detail || 'Request failed')
+    return data
+  },
 }

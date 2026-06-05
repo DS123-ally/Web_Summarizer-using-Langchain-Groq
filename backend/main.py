@@ -1,18 +1,28 @@
 import os
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from auth_routes import router as auth_router, ensure_default_user
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from auth_dependency import get_current_user
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 from rag_pipeline import chat_with_website, get_recent_chats, summarize_website
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials
 
 BASE_DIR = os.path.dirname(__file__)
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
+
+# Initialize Firebase Admin
+try:
+    cred_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY", os.path.join(BASE_DIR, "serviceAccountKey.json"))
+    cred = credentials.Certificate(cred_path)
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred)
+except Exception as e:
+    print(f"Warning: Firebase Admin initialization failed: {e}. Ensure serviceAccountKey.json exists.")
 
 app = FastAPI()
 
@@ -28,9 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(auth_router)
-ensure_default_user()
 
 class URLRequest(BaseModel):
     url: str
@@ -57,6 +64,16 @@ def summarize(req: URLRequest, user_id: str = Depends(get_current_user)):
             strategy=req.strategy,
             summary_length=req.summary_length,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/upload-pdf")
+def upload_pdf(file: UploadFile = File(...), strategy: str = "stuff", summary_length: str = "medium", user_id: str = Depends(get_current_user)):
+    try:
+        from rag_pipeline import summarize_pdf
+        content = file.file.read()
+        return summarize_pdf(content, filename=file.filename, strategy=strategy, summary_length=summary_length)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
