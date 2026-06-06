@@ -25,7 +25,7 @@ embeddings = PineconeEmbeddings(
     pinecone_api_key=pinecone_api_key
 )
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=120)
-index_name = "web-summarizer"
+index_name = os.getenv("PINECONE_INDEX_NAME", "web-summarizer-d")
 
 
 def _url_key(url: str) -> str:
