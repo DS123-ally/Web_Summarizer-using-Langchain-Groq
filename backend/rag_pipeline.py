@@ -7,8 +7,7 @@ import fitz # PyMuPDF
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
-from langchain_pinecone import PineconeVectorStore
+from langchain_pinecone import PineconeVectorStore, PineconeEmbeddings
 from langchain_groq import ChatGroq
 
 from db import SessionLocal, SummaryCache, ChatHistory
@@ -17,13 +16,13 @@ BASE_DIR = os.path.dirname(__file__)
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
-hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-if not hf_token:
-    raise ValueError("HUGGINGFACEHUB_API_TOKEN is not set.")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
+if not pinecone_api_key:
+    raise ValueError("PINECONE_API_KEY is not set.")
 
-embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=hf_token, 
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+embeddings = PineconeEmbeddings(
+    model="multilingual-e5-large",
+    pinecone_api_key=pinecone_api_key
 )
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=120)
 index_name = "web-summarizer"
