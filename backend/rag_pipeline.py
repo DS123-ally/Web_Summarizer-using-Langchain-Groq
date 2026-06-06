@@ -8,28 +8,22 @@ from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain_pinecone import PineconeVectorStore
 from langchain_groq import ChatGroq
 
-from db import chat_history_col, summaries_col
+from db import SessionLocal, SummaryCache, ChatHistory
 
 BASE_DIR = os.path.dirname(__file__)
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
-INDEX_ROOT = os.path.join(os.path.dirname(__file__), "faiss_indexes")
-os.makedirs(INDEX_ROOT, exist_ok=True)
-
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=120)
+index_name = "web-summarizer"
 
 
 def _url_key(url: str) -> str:
     return hashlib.sha256(url.strip().lower().encode("utf-8")).hexdigest()[:24]
-
-
-def _index_path(url: str) -> str:
-    return os.path.join(INDEX_ROOT, _url_key(url))
 
 
 def _get_llm() -> ChatGroq:
@@ -71,23 +65,20 @@ def _load_website_text(url: str) -> str:
     return page_text
 
 
-def _build_or_load_store(url: str, page_text: str | None = None) -> tuple[FAISS, bool]:
-    path = _index_path(url)
-    faiss_file = os.path.join(path, "index.faiss")
-    pkl_file = os.path.join(path, "index.pkl")
-
-    if os.path.exists(faiss_file) and os.path.exists(pkl_file):
-        store = FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
+def _build_or_load_store(url: str, page_text: str | None = None) -> tuple[PineconeVectorStore, bool]:
+    namespace = _url_key(url)
+    
+    if page_text is None:
+        # Just loading connection, vectors assumed to be in Pinecone already
+        store = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embeddings, namespace=namespace)
         return store, True
 
-    if page_text is None:
-        page_text = _load_website_text(url)
     chunks = splitter.split_text(page_text)
     if not chunks:
         raise ValueError("Unable to build vector index for this URL.")
 
-    store = FAISS.from_texts(chunks, embeddings)
-    store.save_local(path)
+    # Upload to Pinecone under specific namespace
+    store = PineconeVectorStore.from_texts(texts=chunks, embedding=embeddings, index_name=index_name, namespace=namespace)
     return store, False
 
 
@@ -139,46 +130,41 @@ def summarize_website(
     summary_length: str | int = "medium",
 ) -> dict:
     length_key, target_words = _normalize_summary_length(summary_length)
-    cache_query = {"url": url, "strategy": strategy, "summary_length": length_key}
-    cached_doc = summaries_col.find_one(cache_query)
-    if cached_doc and cached_doc.get("summary"):
-        _build_or_load_store(url)
-        return {
-            "summary": cached_doc["summary"],
-            "cached": True,
-            "url": url,
-            "strategy": strategy,
-            "summary_length": length_key,
-        }
-
-    page_text = _load_website_text(url)
-    _build_or_load_store(url, page_text=page_text)
-    chunks = splitter.split_text(page_text)
-
-    llm = _get_llm()
-    if strategy == "map_reduce":
-        summary = _summarize_with_map_reduce(llm, chunks, target_words)
-    elif strategy == "refine":
-        summary = _summarize_with_refine(llm, chunks, target_words)
-    else:
-        summary = _summarize_with_stuff(llm, page_text, target_words)
-
-    summaries_col.update_one(
-        cache_query,
-        {
-            "$set": {
+    
+    with SessionLocal() as db:
+        cached_doc = db.query(SummaryCache).filter_by(url=url, strategy=strategy, summary_length=length_key).first()
+        if cached_doc and cached_doc.summary:
+            return {
+                "summary": cached_doc.summary,
+                "cached": True,
                 "url": url,
                 "strategy": strategy,
                 "summary_length": length_key,
-                "summary": summary,
-                "updated_at": datetime.utcnow(),
-            },
-            "$setOnInsert": {
-                "created_at": datetime.utcnow(),
-            },
-        },
-        upsert=True,
-    )
+            }
+
+        page_text = _load_website_text(url)
+        # Check if any summary exists to avoid re-vectorizing
+        any_summary = db.query(SummaryCache).filter_by(url=url).first()
+        if not any_summary:
+            _build_or_load_store(url, page_text=page_text)
+        
+        chunks = splitter.split_text(page_text)
+        llm = _get_llm()
+        if strategy == "map_reduce":
+            summary = _summarize_with_map_reduce(llm, chunks, target_words)
+        elif strategy == "refine":
+            summary = _summarize_with_refine(llm, chunks, target_words)
+        else:
+            summary = _summarize_with_stuff(llm, page_text, target_words)
+
+        new_cache = SummaryCache(
+            url=url,
+            strategy=strategy,
+            summary_length=length_key,
+            summary=summary
+        )
+        db.add(new_cache)
+        db.commit()
 
     return {
         "summary": summary,
@@ -207,47 +193,39 @@ def summarize_pdf(
     file_hash = hashlib.sha256(content).hexdigest()[:24]
     pseudo_url = f"pdf://{filename}/{file_hash}"
     
-    page_text = _load_pdf_text(content)
-    
-    cache_query = {"url": pseudo_url, "strategy": strategy, "summary_length": length_key}
-    cached_doc = summaries_col.find_one(cache_query)
-    if cached_doc and cached_doc.get("summary"):
-        _build_or_load_store(pseudo_url, page_text=page_text)
-        return {
-            "summary": cached_doc["summary"],
-            "cached": True,
-            "url": pseudo_url,
-            "strategy": strategy,
-            "summary_length": length_key,
-        }
-
-    _build_or_load_store(pseudo_url, page_text=page_text)
-    chunks = splitter.split_text(page_text)
-
-    llm = _get_llm()
-    if strategy == "map_reduce":
-        summary = _summarize_with_map_reduce(llm, chunks, target_words)
-    elif strategy == "refine":
-        summary = _summarize_with_refine(llm, chunks, target_words)
-    else:
-        summary = _summarize_with_stuff(llm, page_text, target_words)
-
-    summaries_col.update_one(
-        cache_query,
-        {
-            "$set": {
+    with SessionLocal() as db:
+        cached_doc = db.query(SummaryCache).filter_by(url=pseudo_url, strategy=strategy, summary_length=length_key).first()
+        if cached_doc and cached_doc.summary:
+            return {
+                "summary": cached_doc.summary,
+                "cached": True,
                 "url": pseudo_url,
                 "strategy": strategy,
                 "summary_length": length_key,
-                "summary": summary,
-                "updated_at": datetime.utcnow(),
-            },
-            "$setOnInsert": {
-                "created_at": datetime.utcnow(),
-            },
-        },
-        upsert=True,
-    )
+            }
+
+        page_text = _load_pdf_text(content)
+        any_summary = db.query(SummaryCache).filter_by(url=pseudo_url).first()
+        if not any_summary:
+            _build_or_load_store(pseudo_url, page_text=page_text)
+
+        chunks = splitter.split_text(page_text)
+        llm = _get_llm()
+        if strategy == "map_reduce":
+            summary = _summarize_with_map_reduce(llm, chunks, target_words)
+        elif strategy == "refine":
+            summary = _summarize_with_refine(llm, chunks, target_words)
+        else:
+            summary = _summarize_with_stuff(llm, page_text, target_words)
+
+        new_cache = SummaryCache(
+            url=pseudo_url,
+            strategy=strategy,
+            summary_length=length_key,
+            summary=summary
+        )
+        db.add(new_cache)
+        db.commit()
 
     return {
         "summary": summary,
@@ -278,8 +256,6 @@ def chat_with_website(
     docs = []
     seen = set()
     for q in queries[:4]:
-        # Compatibility across LangChain versions:
-        # newer retrievers use invoke(), older ones expose get_relevant_documents().
         retrieved_docs = (
             retriever.invoke(q)
             if hasattr(retriever, "invoke")
@@ -311,32 +287,29 @@ def chat_with_website(
     }
 
     if user_id:
-        chat_history_col.insert_one(
-            {
-                "user_id": user_id,
-                "url": url,
-                "question": question,
-                "answer": answer,
-                "queries_used": queries[:4],
-                "created_at": datetime.utcnow(),
-            }
-        )
+        with SessionLocal() as db:
+            chat_record = ChatHistory(
+                user_id=user_id,
+                url=url,
+                question=question,
+                answer=answer,
+                queries_used=queries[:4]
+            )
+            db.add(chat_record)
+            db.commit()
 
     return result
 
 
 def get_recent_chats(user_id: str, limit: int = 12) -> list[dict]:
-    cursor = (
-        chat_history_col.find({"user_id": user_id}, {"_id": 0})
-        .sort("created_at", -1)
-        .limit(limit)
-    )
-    return [
-        {
-            "url": c.get("url", ""),
-            "question": c.get("question", ""),
-            "answer": c.get("answer", ""),
-            "created_at": c.get("created_at").isoformat() if c.get("created_at") else None,
-        }
-        for c in cursor
-    ]
+    with SessionLocal() as db:
+        cursor = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).order_by(ChatHistory.created_at.desc()).limit(limit).all()
+        return [
+            {
+                "url": c.url,
+                "question": c.question,
+                "answer": c.answer,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+            for c in cursor
+        ]

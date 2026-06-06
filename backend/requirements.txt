@@ -2,7 +2,8 @@ fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.0.0
 
-pymongo>=4.7.0
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
 
 passlib[bcrypt]>=1.7.4
@@ -13,12 +14,12 @@ langchain>=0.1.0
 langchain-community>=0.0.1
 langchain-groq>=0.1.0
 langchain-text-splitters>=0.0.1
+langchain-pinecone>=0.1.0
+pinecone-client>=4.0.0
 
 beautifulsoup4>=4.11.0
 requests>=2.31.0
 
-# FAISS and sentence-transformers for RAG features
-faiss-cpu>=1.7.4
 sentence-transformers>=2.2.0
 python-multipart>=0.0.9
 PyMuPDF>=1.23.0
