@@ -66,11 +66,51 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Resolve Firebase service account
+        id: firebase_secret
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            secret="$FIREBASE_SERVICE_ACCOUNT_JSON"
+          elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            secret="$FIREBASE_SERVICE_ACCOUNT"
+          else
+            echo "::error::Missing Firebase service account secret. Add FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_JSON to repository secrets."
+            exit 1
+          fi
+
+          echo "firebaseServiceAccount<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$secret" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Firebase service account
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ steps.firebase_secret.outputs.firebaseServiceAccount }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          payload = os.environ['FIREBASE_SERVICE_ACCOUNT']
+          data = json.loads(payload)
+          required = ['type', 'project_id', 'private_key', 'client_email']
+          missing = [field for field in required if not data.get(field)]
+          if missing:
+              print(f"::error::Firebase service account is missing required fields: {', '.join(missing)}")
+              sys.exit(1)
+          print('Firebase service account format looks valid.')
+          PY
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          firebaseServiceAccount: ${{ steps.firebase_secret.outputs.firebaseServiceAccount }}
           projectId: ragwebsummarizer
           entryPoint: .
           channelId: live
