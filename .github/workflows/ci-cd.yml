@@ -75,5 +75,11 @@ jobs:
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$HOME/firebase-service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          firebase use ragwebsummarizer --add --non-interactive || true
-          firebase deploy --only hosting --project ragwebsummarizer --non-interactive --token "$FIREBASE_SERVICE_ACCOUNT"
+          export FIREBASE_TOKEN=$(python - <<'PY'
+import json, os
+with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS']) as f:
+    data = json.load(f)
+print(data['client_email'])
+PY
+)
+          firebase deploy --only hosting --project ragwebsummarizer --non-interactive
