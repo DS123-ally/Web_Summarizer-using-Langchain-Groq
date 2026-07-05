@@ -73,6 +73,7 @@ jobs:
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$HOME/firebase-service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
           npm install -g firebase-tools@latest
-          cat "$HOME/firebase-service-account.json" | head -n 20
-          firebase projects:list
-          firebase deploy --only hosting --project ragwebsummarizer --non-interactive
+          export FIREBASE_CLI_EXPERIMENTS=webframeworks
+          firebase login:list || true
+          firebase projects:list --account "$HOME/firebase-service-account.json" || true
+          firebase deploy --only hosting --project ragwebsummarizer --non-interactive --account "$HOME/firebase-service-account.json"
