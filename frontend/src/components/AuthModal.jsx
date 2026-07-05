@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth, signInWithGoogle } from '../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AuthModal({ isOpen, onClose }) {
@@ -61,13 +61,11 @@ export default function AuthModal({ isOpen, onClose }) {
   async function handleGoogleSignIn() {
     setError('')
     setLoading(true)
-    const provider = new GoogleAuthProvider()
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       handleClose()
-      navigate('/dashboard')
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Google sign-in failed')
     } finally {
       setLoading(false)
     }

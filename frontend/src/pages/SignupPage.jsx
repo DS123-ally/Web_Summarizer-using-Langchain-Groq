@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth, signInWithGoogle } from '../lib/firebase';
 import { motion } from 'framer-motion';
 
 export default function SignupPage() {
@@ -36,12 +36,10 @@ export default function SignupPage() {
   async function handleGoogleSignIn() {
     setError('')
     setLoading(true)
-    const provider = new GoogleAuthProvider()
     try {
-      await signInWithPopup(auth, provider);
-      navigate('/dashboard')
+      await signInWithGoogle();
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Google sign-in failed')
     } finally {
       setLoading(false)
     }
