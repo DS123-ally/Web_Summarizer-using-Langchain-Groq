@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -78,15 +79,18 @@ jobs:
           elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
             secret="$FIREBASE_SERVICE_ACCOUNT"
           else
-            echo "::error::Missing Firebase service account secret. Add FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_JSON to repository secrets."
-            exit 1
+            echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Firebase deployment skipped because no service account secret is configured."
+            exit 0
           fi
 
+          echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
           echo "firebaseServiceAccount<<EOF" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$secret" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Validate Firebase service account
+        if: steps.firebase_secret.outputs.deploy_enabled == 'true'
         shell: bash
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ steps.firebase_secret.outputs.firebaseServiceAccount }}
@@ -106,7 +110,12 @@ jobs:
           print('Firebase service account format looks valid.')
           PY
 
+      - name: Skip deployment when Firebase secret is missing
+        if: steps.firebase_secret.outputs.deploy_enabled != 'true'
+        run: echo "Deployment was skipped. Add FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_JSON in GitHub repository secrets to enable it."
+
       - name: Deploy to Firebase Hosting
+        if: steps.firebase_secret.outputs.deploy_enabled == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
