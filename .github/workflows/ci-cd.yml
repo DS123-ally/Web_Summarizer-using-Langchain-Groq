@@ -75,5 +75,5 @@ jobs:
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$HOME/firebase-service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          firebase auth:login --no-localhost --cred-file "$HOME/firebase-service-account.json"
-          firebase deploy --only hosting --project ragwebsummarizer --non-interactive
+          firebase use ragwebsummarizer --add --non-interactive || true
+          firebase deploy --only hosting --project ragwebsummarizer --non-interactive --token "$FIREBASE_SERVICE_ACCOUNT"
